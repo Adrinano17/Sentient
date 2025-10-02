@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sentient Quiz</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: #1a0029;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+    .quiz-container {
+      max-width: 750px;
+      margin: auto;
+      background: #2a0040;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 0 25px rgba(162, 0, 255, 0.6);
+      animation: fadeIn 0.5s ease;
+    }
+    h1 {
+      margin-bottom: 10px;
+      color: #ff33cc;
+    }
+    .progress {
+      height: 15px;
+      background: #3d0066;
+      border-radius: 8px;
+      margin: 15px 0;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff33cc, #9900ff);
+      transition: width 0.4s ease;
+    }
+    button {
+      display: block;
+      width: 100%;
+      margin: 8px 0;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #6600cc;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    button:hover { 
+      background: #9900ff; 
+      transform: scale(1.05);
+    }
+    #feedback img {
+      max-width: 180px;
+      margin: 15px auto;
+      display: block;
+      animation: pop 0.5s ease;
+    }
+    #feedback p { font-size: 16px; }
+    #nextBtn, #retakeBtn, #downloadBtn {
+      background: #ff33cc;
+      margin-top: 12px;
+    }
+    #nextBtn:hover, #retakeBtn:hover, #downloadBtn:hover { background: #ff66ff; }
+    .hidden { display: none; }
+    .certificate {
+      background: #fff;
+      color: #000;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 12px;
+      font-family: "Georgia", serif;
+    }
+    .certificate h2 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      color: #2a0040;
+    }
+    .certificate img {
+      max-width: 150px;
+      margin: 15px auto;
+      display: block;
+    }
+    @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
+    @keyframes pop { 0% {transform: scale(0.5);} 100% {transform: scale(1);} }
+  </style>
+</head>
+<body>
+
+  <div class="quiz-container">
+    <h1>🐾 Sentient Quiz</h1>
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+    <h2 id="question"></h2>
+    <div id="options"></div>
+    <div id="feedback" class="hidden"></div>
+    <button id="nextBtn" class="hidden">Next Question ▶</button>
+    <div id="endScreen" class="hidden"></div>
+    <h3 id="score"></h3>
+  </div>
+
+  <script>
+    const questions = [
+      { question: "What is the mission of Sentient?",
+        options: ["To build the world’s first open and community-built AGI", "To create AI only for corporations", "To control AI secretly"],
+        answer: 0,
+        explanation: "Sentient’s mission is to build the world’s first open and community-built AGI, loyal to humanity." },
+      { question: "What does Loyal AI mean?",
+        options: ["AI aligned, owned, and controlled by the community", "AI secretly controlled by a company", "AI without transparency"],
+        answer: 0,
+        explanation: "Loyal AI = Alignment + Ownership + Control. It's about AI serving the community." },
+      { question: "What formula defines LOYALTY?",
+        options: ["LOYALTY = Alignment + Ownership + Control", "LOYALTY = Power + Money", "LOYALTY = Secrecy + Profit"],
+        answer: 0,
+        explanation: "LOYALTY = Alignment + Ownership + Control is Sentient’s core idea." },
+      { question: "Why is AGI centralization risky?",
+        options: ["It can concentrate power in very few corporations", "It makes AI funny", "It makes AI cheaper for everyone"],
+        answer: 0,
+        explanation: "Centralization risks creating monopolies where only a few control AGI." },
+      { question: "What is the Sentient Chat product?",
+        options: ["A messaging app controlled by one company", "A community-owned chat where agents create and exchange value", "Just another social media platform"],
+        answer: 1,
+        explanation: "Sentient Chat is community-owned, enabling users and agents to interact and create value." },
+      { question: "Who should control AGI according to Sentient?",
+        options: ["Only private corporations", "Only governments", "The global community"],
+        answer: 2,
+        explanation: "AGI should be owned and controlled by the global community to ensure fairness." },
+      { question: "How can individuals contribute to Sentient?",
+        options: ["Through art, blogs, ideas, coding, and education", "By waiting for others to act", "By keeping knowledge secret"],
+        answer: 0,
+        explanation: "Everyone can contribute — through creativity, code, education, and community engagement." },
+      { question: "What kind of ecosystem does Sentient aim to build?",
+        options: ["Closed and hidden AI systems", "Community-owned open ecosystem", "Profit-only systems"],
+        answer: 1,
+        explanation: "Sentient aims for an open, community-owned ecosystem where AI serves humanity." },
+      { question: "Why is education important in Sentient?",
+        options: ["So only a few people can understand", "So everyone can understand and shape AI together", "So corporations have more power"],
+        answer: 1,
+        explanation: "Education ensures everyone can understand, contribute, and shape AI fairly." },
+      { question: "What happens when you contribute to Sentient?",
+        options: ["You waste your time", "You strengthen community alignment and ownership", "You lose control"],
+        answer: 1,
+        explanation: "Every contribution builds collective ownership and alignment, strengthening the community." }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const feedbackEl = document.getElementById("feedback");
+    const nextBtn = document.getElementById("nextBtn");
+    const scoreEl = document.getElementById("score");
+    const progressBar = document.getElementById("progressBar");
+    const endScreen = document.getElementById("endScreen");
+
+    function loadQuestion() {
+      const q = questions[currentQuestion];
+      questionEl.textContent = q.question;
+      optionsEl.innerHTML = "";
+      feedbackEl.classList.add("hidden");
+      nextBtn.classList.add("hidden");
+      feedbackEl.innerHTML = ""; // clear mascot
+
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.onclick = () => checkAnswer(i);
+        optionsEl.appendChild(btn);
+      });
+
+      progressBar.style.width = ((currentQuestion) / questions.length) * 100 + "%";
+      scoreEl.textContent = `Score: ${score}/${questions.length}`;
+    }
+
+    function checkAnswer(selected) {
+      const q = questions[currentQuestion];
+      const isCorrect = selected === q.answer;
+
+      if (isCorrect) score++;
+
+      feedbackEl.innerHTML = `
+        <img src="${isCorrect ? 'correct.png' : 'wrong.png'}" alt="${isCorrect ? 'Correct' : 'Wrong'}">
+        <p><strong>${isCorrect ? "Correct! 🎉" : "Oops! ❌"}</strong></p>
+        <p>${q.explanation}</p>
+      `;
+      feedbackEl.classList.remove("hidden");
+      nextBtn.classList.remove("hidden");
+
+      progressBar.style.width = ((currentQuestion + 1) / questions.length) * 100 + "%";
+      scoreEl.textContent = `Score: ${score}/${questions.length}`;
+    }
+
+    nextBtn.onclick = () => {
+      currentQuestion++;
+      if (currentQuestion < questions.length) {
+        loadQuestion();
+      } else {
+        showEndScreen();
+      }
+    };
+
+    function showEndScreen() {
+      questionEl.textContent = "🎉 Quiz Completed!";
+      optionsEl.innerHTML = "";
+      feedbackEl.innerHTML = "";
+      nextBtn.classList.add("hidden");
+
+      const passed = score > 5;
+      endScreen.classList.remove("hidden");
+      endScreen.innerHTML = `
+        <div class="certificate">
+          <h2>${passed ? "SENTIENT CHAD" : "TRY AGAIN CHAD"}</h2>
+          <img src="${passed ? 'correct.png' : 'wrong.png'}" alt="Mascot">
+          <p>You scored <strong>${score}/${questions.length}</strong></p>
+          <button id="retakeBtn">🔄 Retake Quiz</button>
+          <button id="downloadBtn">⬇ Download Result</button>
+        </div>
+      `;
+
+      document.getElementById("retakeBtn").onclick = () => {
+        currentQuestion = 0;
+        score = 0;
+        endScreen.classList.add("hidden");
+        loadQuestion();
+      };
+
+      document.getElementById("downloadBtn").onclick = () => {
+        const text = `Sentient Quiz Result:\nScore: ${score}/${questions.length}\nStatus: ${passed ? "SENTIENT CHAD" : "TRY AGAIN CHAD"}`;
+        const blob = new Blob([text], { type: "text/plain" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "sentient-quiz-result.txt";
+        link.click();
+      };
+    }
+
+    loadQuestion();
+  </script>
+
+</body>
+</html>
