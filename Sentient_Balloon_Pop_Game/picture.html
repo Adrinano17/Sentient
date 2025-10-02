@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Picture Pop — Simple Game</title>
+    <style>
+        :root {
+            --bg: #0c1221;
+            --panel: #0f1724;
+            --accent: #ff6b6b;
+            --muted: #9aa4b2;
+            --glass: rgba(255, 255, 255, 0.04);
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, Segoe UI, Roboto, -apple-system, "Helvetica Neue", Arial
+        }
+
+        body {
+            background: linear-gradient(180deg, var(--bg) 0%, #071024 100%);
+            color: #e6eef6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px
+        }
+
+        .game-wrap {
+            width: 900px;
+            max-width: 100%;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(2, 6, 23, 0.6);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 340px
+        }
+
+        .play-area {
+            position: relative;
+            background: radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.02), transparent 20%), linear-gradient(180deg, #092037 0%, #06202b 100%);
+            min-height: 520px
+        }
+
+        .hud {
+            position: absolute;
+            left: 12px;
+            top: 12px;
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .hud .pill {
+            background: var(--glass);
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-weight: 600;
+            color: var(--muted);
+            backdrop-filter: blur(4px)
+        }
+
+        .score {
+            font-size: 22px;
+            color: #fff
+        }
+
+        .sidebar {
+            padding: 20px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0.01));
+            border-left: 1px solid rgba(255, 255, 255, 0.03)
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 20px
+        }
+
+        .controls {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px
+        }
+
+        button {
+            background: var(--accent);
+            border: none;
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer
+        }
+
+        button.secondary {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: var(--muted);
+            font-weight: 600
+        }
+
+        .meta {
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        /* picture */
+        .picture {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transform-origin: center bottom
+        }
+
+        .picture img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .pop {
+            position: absolute;
+            pointer-events: none;
+            font-size: 18px;
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6)
+        }
+
+        @media (max-width:880px) {
+            .game-wrap {
+                grid-template-columns: 1fr
+            }
+
+            .sidebar {
+                order: 2
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-wrap" role="application" aria-label="Picture Pop Game">
+        <div class="play-area" id="playArea">
+            <div class="hud">
+                <div class="pill score">Score: <span id="score">0</span></div>
+                <div class="pill">Time: <span id="time">60</span>s</div>
+                <div class="pill">Lives: <span id="lives">3</span></div>
+            </div>
+            <div id="popLayer"></div>
+        </div>
+
+        <aside class="sidebar">
+            <h1>Picture Pop</h1>
+            <p class="meta">Click (or tap) the pictures before they float away. Now it supports multiple random images!
+            </p>
+
+            <div class="controls">
+                <button id="startBtn">Start Game</button>
+                <button class="secondary" id="resetBtn">Reset Highscore</button>
+            </div>
+
+            <div style="margin-top:14px">
+                <div class="pill">Highscore: <strong id="highscore">0</strong></div>
+            </div>
+
+            <div style="margin-top:18px;color:var(--muted)">
+                <p style="margin:6px 0"><strong>How to play</strong></p>
+                <ul style="margin:4px 0 0 18px;color:var(--muted)">
+                    <li>Click or tap the pictures to pop them.</li>
+                    <li>Do not let too many escape — you have 3 lives.</li>
+                    <li>Game lasts 60 seconds.</li>
+                </ul>
+            </div>
+
+            <div style="margin-top:18px;color:var(--muted);font-size:13px">Made with ❤️ — sentient fam.</div>
+        </aside>
+    </div>
+
+    <script>
+        (() => {
+            const playArea = document.getElementById('playArea');
+            const scoreEl = document.getElementById('score');
+            const timeEl = document.getElementById('time');
+            const livesEl = document.getElementById('lives');
+            const startBtn = document.getElementById('startBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const highscoreEl = document.getElementById('highscore');
+            const popLayer = document.getElementById('popLayer');
+
+            let score = 0, timeLeft = 60, lives = 3, gameInterval = null, spawnInterval = null, running = false;
+            let highscore = parseInt(localStorage.getItem('picture_highscore') || '0', 10);
+            highscoreEl.textContent = highscore;
+
+            // List of multiple random images
+            const images = [
+                'images/dobby.png',
+                'images/dobby1.png',
+                'images/dobby2.jpeg',
+                'images/dobby3.jpeg',
+                'images/dobby4.jpeg',
+                'images/dobby5.jpeg',
+                'images/dobby6.jpeg',
+            ];
+
+            function rand(min, max) { return Math.random() * (max - min) + min }
+
+            function createPicture() {
+                const p = document.createElement('div');
+                p.className = 'picture';
+                const size = Math.round(rand(50, 100));
+                p.style.width = size + 'px';
+
+                const img = document.createElement('img');
+                // Pick a random image from the list
+                img.src = images[Math.floor(Math.random() * images.length)];
+                p.appendChild(img);
+
+                const padding = 20;
+                const left = rand(padding, playArea.clientWidth - size - padding);
+                p.style.left = left + 'px';
+                p.style.bottom = '-140px';
+
+                playArea.appendChild(p);
+
+                const speed = rand(2.2, 4.8);
+                const endY = playArea.clientHeight + 200;
+                const start = performance.now();
+                let popped = false;
+
+                function step(now) {
+                    const t = (now - start) / (speed * 1000);
+                    if (popped) return;
+                    if (t >= 1) {
+                        p.remove();
+                        loseLife();
+                        return;
+                    }
+                    const y = t * endY;
+                    p.style.bottom = (y - 140) + 'px';
+                    requestAnimationFrame(step);
+                }
+                requestAnimationFrame(step);
+
+                p.addEventListener('click', () => {
+                    if (!running) return;
+                    popped = true;
+                    popPicture(p, Math.round(size / 10));
+                });
+
+                p.addEventListener('touchstart', (e) => { e.preventDefault(); if (!running) return; popped = true; popPicture(p, Math.round(size / 10)); }, { passive: false });
+            }
+
+            function popPicture(el, points) {
+                const rect = el.getBoundingClientRect();
+                const pop = document.createElement('div');
+                pop.className = 'pop';
+                pop.textContent = '+' + points;
+                pop.style.left = (rect.left + rect.width / 2 - playArea.getBoundingClientRect().left - 24) + 'px';
+                pop.style.top = (rect.top - playArea.getBoundingClientRect().top + 8) + 'px';
+                popLayer.appendChild(pop);
+                setTimeout(() => { pop.style.transform = 'translateY(-30px)'; pop.style.opacity = '0'; pop.style.transition = 'all 650ms ease-out'; }, 10);
+                setTimeout(() => pop.remove(), 800);
+
+                el.remove();
+                addScore(points);
+            }
+
+            function addScore(n) {
+                score += n;
+                scoreEl.textContent = score;
+            }
+
+            function loseLife() {
+                lives -= 1;
+                livesEl.textContent = lives;
+                if (lives <= 0) endGame();
+            }
+
+            function tick() {
+                timeLeft -= 1;
+                timeEl.textContent = timeLeft;
+                if (timeLeft % 10 === 0 && spawnInterval) {
+                    clearInterval(spawnInterval);
+                    const nextDelay = Math.max(500, 1400 - (60 - timeLeft) * 10);
+                    spawnInterval = setInterval(createPicture, nextDelay);
+                }
+                if (timeLeft <= 0) endGame();
+            }
+
+            function startGame() {
+                if (running) return;
+                running = true;
+                score = 0; timeLeft = 60; lives = 3;
+                scoreEl.textContent = score; timeEl.textContent = timeLeft; livesEl.textContent = lives;
+                document.querySelectorAll('.picture').forEach(p => p.remove());
+                spawnInterval = setInterval(createPicture, 1200);
+                gameInterval = setInterval(tick, 1000);
+                startBtn.textContent = 'Running...'; startBtn.disabled = true;
+            }
+
+            function endGame() {
+                running = false;
+                clearInterval(gameInterval); clearInterval(spawnInterval);
+                startBtn.textContent = 'Start Game'; startBtn.disabled = false;
+                if (score > highscore) {
+                    highscore = score; localStorage.setItem('picture_highscore', highscore);
+                    highscoreEl.textContent = highscore;
+                    alert('New highscore! 🎉\nScore: ' + score);
+                } else {
+                    alert('Game over. Score: ' + score);
+                }
+            }
+
+            startBtn.addEventListener('click', startGame);
+            resetBtn.addEventListener('click', () => {
+                if (confirm('Reset saved highscore?')) {
+                    localStorage.removeItem('picture_highscore'); highscore = 0; highscoreEl.textContent = 0;
+                }
+            });
+        })();
+    </script>
+</body>
+
+</html>
