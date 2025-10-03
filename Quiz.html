@@ -1,4 +1,3 @@
-
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -92,7 +91,7 @@
 <body>
 
   <div class="quiz-container">
-    <h1>🐾 Sentient Quiz</h1>
+    <h1>Sentient Quiz</h1>
     <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
     <h2 id="question"></h2>
     <div id="options"></div>
@@ -103,51 +102,52 @@
   </div>
 
   <script>
-    const questions = [
-      { question: "What is the mission of Sentient?",
-        options: ["To build the world’s first open and community-built AGI", "To create AI only for corporations", "To control AI secretly"],
-        answer: 0,
-        explanation: "Sentient’s mission is to build the world’s first open and community-built AGI, loyal to humanity." },
-      { question: "What does Loyal AI mean?",
-        options: ["AI aligned, owned, and controlled by the community", "AI secretly controlled by a company", "AI without transparency"],
-        answer: 0,
-        explanation: "Loyal AI = Alignment + Ownership + Control. It's about AI serving the community." },
-      { question: "What formula defines LOYALTY?",
-        options: ["LOYALTY = Alignment + Ownership + Control", "LOYALTY = Power + Money", "LOYALTY = Secrecy + Profit"],
-        answer: 0,
-        explanation: "LOYALTY = Alignment + Ownership + Control is Sentient’s core idea." },
-      { question: "Why is AGI centralization risky?",
-        options: ["It can concentrate power in very few corporations", "It makes AI funny", "It makes AI cheaper for everyone"],
-        answer: 0,
-        explanation: "Centralization risks creating monopolies where only a few control AGI." },
-      { question: "What is the Sentient Chat product?",
-        options: ["A messaging app controlled by one company", "A community-owned chat where agents create and exchange value", "Just another social media platform"],
-        answer: 1,
-        explanation: "Sentient Chat is community-owned, enabling users and agents to interact and create value." },
-      { question: "Who should control AGI according to Sentient?",
-        options: ["Only private corporations", "Only governments", "The global community"],
-        answer: 2,
-        explanation: "AGI should be owned and controlled by the global community to ensure fairness." },
-      { question: "How can individuals contribute to Sentient?",
-        options: ["Through art, blogs, ideas, coding, and education", "By waiting for others to act", "By keeping knowledge secret"],
-        answer: 0,
-        explanation: "Everyone can contribute — through creativity, code, education, and community engagement." },
-      { question: "What kind of ecosystem does Sentient aim to build?",
-        options: ["Closed and hidden AI systems", "Community-owned open ecosystem", "Profit-only systems"],
-        answer: 1,
-        explanation: "Sentient aims for an open, community-owned ecosystem where AI serves humanity." },
-      { question: "Why is education important in Sentient?",
-        options: ["So only a few people can understand", "So everyone can understand and shape AI together", "So corporations have more power"],
-        answer: 1,
-        explanation: "Education ensures everyone can understand, contribute, and shape AI fairly." },
-      { question: "What happens when you contribute to Sentient?",
-        options: ["You waste your time", "You strengthen community alignment and ownership", "You lose control"],
-        answer: 1,
-        explanation: "Every contribution builds collective ownership and alignment, strengthening the community." }
+    // Obfuscated data - answers encoded separately
+    const qData = [
+      { q: "What is the mission of Sentient?",
+        o: ["To build the world's first open and community-built AGI", "To create AI only for corporations", "To control AI secretly"],
+        a: btoa("0"), 
+        e: "Sentient's mission is to build the world's first open and community-built AGI, loyal to humanity." },
+      { q: "What does Loyal AI mean?",
+        o: ["AI aligned, owned, and controlled by the community", "AI secretly controlled by a company", "AI without transparency"],
+        a: btoa("0"),
+        e: "Loyal AI = Alignment + Ownership + Control. It's about AI serving the community." },
+      { q: "What formula defines LOYALTY?",
+        o: ["LOYALTY = Alignment + Ownership + Control", "LOYALTY = Power + Money", "LOYALTY = Secrecy + Profit"],
+        a: btoa("0"),
+        e: "LOYALTY = Alignment + Ownership + Control is Sentient's core idea." },
+      { q: "Why is AGI centralization risky?",
+        o: ["It can concentrate power in very few corporations", "It makes AI funny", "It makes AI cheaper for everyone"],
+        a: btoa("0"),
+        e: "Centralization risks creating monopolies where only a few control AGI." },
+      { q: "What is the Sentient Chat product?",
+        o: ["A messaging app controlled by one company", "A community-owned chat where agents create and exchange value", "Just another social media platform"],
+        a: btoa("1"),
+        e: "Sentient Chat is community-owned, enabling users and agents to interact and create value." },
+      { q: "Who should control AGI according to Sentient?",
+        o: ["Only private corporations", "Only governments", "The global community"],
+        a: btoa("2"),
+        e: "AGI should be owned and controlled by the global community to ensure fairness." },
+      { q: "How can individuals contribute to Sentient?",
+        o: ["Through art, blogs, ideas, coding, and education", "By waiting for others to act", "By keeping knowledge secret"],
+        a: btoa("0"),
+        e: "Everyone can contribute — through creativity, code, education, and community engagement." },
+      { q: "What kind of ecosystem does Sentient aim to build?",
+        o: ["Closed and hidden AI systems", "Community-owned open ecosystem", "Profit-only systems"],
+        a: btoa("1"),
+        e: "Sentient aims for an open, community-owned ecosystem where AI serves humanity." },
+      { q: "Why is education important in Sentient?",
+        o: ["So only a few people can understand", "So everyone can understand and shape AI together", "So corporations have more power"],
+        a: btoa("1"),
+        e: "Education ensures everyone can understand, contribute, and shape AI fairly." },
+      { q: "What happens when you contribute to Sentient?",
+        o: ["You waste your time", "You strengthen community alignment and ownership", "You lose control"],
+        a: btoa("1"),
+        e: "Every contribution builds collective ownership and alignment, strengthening the community." }
     ];
 
     let currentQuestion = 0;
-    let score = 0;
+    let userChoices = [];
 
     const questionEl = document.getElementById("question");
     const optionsEl = document.getElementById("options");
@@ -158,45 +158,57 @@
     const endScreen = document.getElementById("endScreen");
 
     function loadQuestion() {
-      const q = questions[currentQuestion];
-      questionEl.textContent = q.question;
+      const q = qData[currentQuestion];
+      questionEl.textContent = q.q;
       optionsEl.innerHTML = "";
       feedbackEl.classList.add("hidden");
       nextBtn.classList.add("hidden");
       feedbackEl.innerHTML = ""; 
 
-      q.options.forEach((opt, i) => {
+      q.o.forEach((opt, i) => {
         const btn = document.createElement("button");
         btn.textContent = opt;
         btn.onclick = () => checkAnswer(i);
         optionsEl.appendChild(btn);
       });
 
-      progressBar.style.width = ((currentQuestion) / questions.length) * 100 + "%";
-      scoreEl.textContent = `Score: ${score}/${questions.length}`;
+      progressBar.style.width = ((currentQuestion) / qData.length) * 100 + "%";
+      scoreEl.textContent = `Score: ${calculateScore()}/${qData.length}`;
     }
 
     function checkAnswer(selected) {
-      const q = questions[currentQuestion];
-      const isCorrect = selected === q.answer;
-
-      if (isCorrect) score++;
+      const q = qData[currentQuestion];
+      userChoices[currentQuestion] = selected;
+      
+      const correctAnswer = parseInt(atob(q.a));
+      const isCorrect = selected === correctAnswer;
 
       feedbackEl.innerHTML = `
         <img src="${isCorrect ? 'correct.png' : 'wrong.png'}" alt="${isCorrect ? 'Correct' : 'Wrong'}">
         <p><strong>${isCorrect ? "Correct! 🎉" : "Oops! ❌"}</strong></p>
-        <p>${q.explanation}</p>
+        <p>${q.e}</p>
       `;
       feedbackEl.classList.remove("hidden");
       nextBtn.classList.remove("hidden");
 
-      progressBar.style.width = ((currentQuestion + 1) / questions.length) * 100 + "%";
-      scoreEl.textContent = `Score: ${score}/${questions.length}`;
+      progressBar.style.width = ((currentQuestion + 1) / qData.length) * 100 + "%";
+      scoreEl.textContent = `Score: ${calculateScore()}/${qData.length}`;
+    }
+
+    function calculateScore() {
+      let s = 0;
+      userChoices.forEach((choice, idx) => {
+        if (choice !== undefined && idx < qData.length) {
+          const correctAnswer = parseInt(atob(qData[idx].a));
+          if (choice === correctAnswer) s++;
+        }
+      });
+      return s;
     }
 
     nextBtn.onclick = () => {
       currentQuestion++;
-      if (currentQuestion < questions.length) {
+      if (currentQuestion < qData.length) {
         loadQuestion();
       } else {
         showEndScreen();
@@ -204,18 +216,19 @@
     };
 
     function showEndScreen() {
+      const finalScore = calculateScore();
       questionEl.textContent = "🎉 Quiz Completed!";
       optionsEl.innerHTML = "";
       feedbackEl.innerHTML = "";
       nextBtn.classList.add("hidden");
 
-      const passed = score > 5;
+      const passed = finalScore > 5;
       endScreen.classList.remove("hidden");
       endScreen.innerHTML = `
         <div class="certificate">
           <h2>${passed ? "SENTIENT CHAD" : "TRY AGAIN CHAD"}</h2>
           <img src="${passed ? 'correct.png' : 'wrong.png'}" alt="Mascot">
-          <p>You scored <strong>${score}/${questions.length}</strong></p>
+          <p>You scored <strong>${finalScore}/${qData.length}</strong></p>
           <button id="retakeBtn">🔄 Retake Quiz</button>
           <button id="downloadBtn">⬇ Download Result</button>
         </div>
@@ -223,13 +236,13 @@
 
       document.getElementById("retakeBtn").onclick = () => {
         currentQuestion = 0;
-        score = 0;
+        userChoices = [];
         endScreen.classList.add("hidden");
         loadQuestion();
       };
 
       document.getElementById("downloadBtn").onclick = () => {
-        const text = `Sentient Quiz Result:\nScore: ${score}/${questions.length}\nStatus: ${passed ? "SENTIENT CHAD" : "TRY AGAIN CHAD"}`;
+        const text = `Sentient Quiz Result:\nScore: ${finalScore}/${qData.length}\nStatus: ${passed ? "SENTIENT CHAD" : "TRY AGAIN CHAD"}`;
         const blob = new Blob([text], { type: "text/plain" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
