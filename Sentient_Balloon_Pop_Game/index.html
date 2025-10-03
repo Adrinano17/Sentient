@@ -204,16 +204,17 @@
             let highscore = parseInt(localStorage.getItem('picture_highscore') || '0', 10);
             highscoreEl.textContent = highscore;
 
-            // List of multiple random images
+            
             const images = [
-                'images/dobby.png',
-                'images/dobby1.png',
-                'images/dobby2.jpeg',
-                'images/dobby3.jpeg',
-                'images/dobby4.jpeg',
-                'images/dobby5.jpeg',
-                'images/dobby6.jpeg',
-            ];
+  './images/dobby.png',
+  './images/dobby1.png',
+  './images/dobby2.jpeg',
+  './images/dobby3.jpeg',
+  './images/dobby4.jpeg',
+  './images/dobby5.jpeg',
+  './images/dobby6.jpeg',
+];
+
 
             function rand(min, max) { return Math.random() * (max - min) + min }
 
