@@ -127,15 +127,9 @@
         const area = $('area'), scoreEl = $('score'), timeEl = $('time'), livesEl = $('lives');
         const startBtn = $('start'), resetBtn = $('reset'), highEl = $('high');
 
-       const images = [
-    './dobby.png',
-    './dobby1.png',
-    './dobby2.jpeg',
-    './dobby3.jpeg',
-    './dobby4.jpeg',
-    './dobby5.jpeg',
-    './dobby6.jpeg'
-];
+        const images = ['./images/dobby.png', './images/dobby1.png', './images/dobby2.jpeg', 
+                       './images/dobby3.jpeg', './images/dobby4.jpeg', './images/dobby5.jpeg', './images/dobby6.jpeg'];
+
         let game = { score: 0, time: 60, lives: 3, running: false, intervals: [] };
         let high = parseInt(localStorage.getItem('high') || '0');
         highEl.textContent = high;
@@ -185,6 +179,7 @@
                 pic.remove();
                 game.score += pts;
                 scoreEl.textContent = game.score;
+                adjustDifficulty();
             };
 
             pic.onclick = pop;
@@ -200,12 +195,12 @@
         function tick() {
             game.time--;
             timeEl.textContent = game.time;
-            if (game.time % 10 === 0) adjustDifficulty();
             if (game.time <= 0) end();
         }
 
         function adjustDifficulty() {
-            const delay = Math.max(500, 1400 - (60 - game.time) * 10);
+            const scoreThreshold = Math.floor(game.score / 50);
+            const delay = Math.max(400, 1400 - (scoreThreshold * 100));
             clearInterval(game.intervals[1]);
             game.intervals[1] = setInterval(spawn, delay);
         }
