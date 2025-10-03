@@ -127,8 +127,15 @@
         const area = $('area'), scoreEl = $('score'), timeEl = $('time'), livesEl = $('lives');
         const startBtn = $('start'), resetBtn = $('reset'), highEl = $('high');
 
-        const images = ['./images/dobby.png', './images/dobby1.png', './images/dobby2.jpeg', 
-                       './images/dobby3.jpeg', './images/dobby4.jpeg', './images/dobby5.jpeg', './images/dobby6.jpeg'];
+        const images = [
+    './dobby.png',
+    './dobby1.png',
+    './dobby2.jpeg',
+    './dobby3.jpeg',
+    './dobby4.jpeg',
+    './dobby5.jpeg',
+    './dobby6.jpeg'
+];
 
         let game = { score: 0, time: 60, lives: 3, running: false, intervals: [] };
         let high = parseInt(localStorage.getItem('high') || '0');
