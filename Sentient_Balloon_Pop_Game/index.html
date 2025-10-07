@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Picture Pop</title>
+    <title>Picture Pop - Levels</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0 }
         body {
@@ -14,7 +14,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px
+            padding: 24px;
+            overflow: hidden;
         }
         .game-wrap {
             width: 900px;
@@ -29,14 +30,23 @@
         .play-area {
             position: relative;
             background: linear-gradient(180deg, #092037 0%, #06202b 100%);
-            min-height: 520px
+            min-height: 520px;
+            transition: background 0.5s;
         }
+        .play-area.ocean { background: linear-gradient(180deg, #0a4d68 0%, #05445e 100%) }
+        .play-area.space { background: linear-gradient(180deg, #0f0f23 0%, #1a0933 100%) }
+        .play-area.garden { background: linear-gradient(180deg, #2d5016 0%, #1e3a0f 100%) }
+        .play-area.candy { background: linear-gradient(180deg, #ff6ec7 0%, #ff1493 100%) }
+        .play-area.neon { background: linear-gradient(180deg, #1a0b2e 0%, #0f051d 100%) }
+        
         .hud {
             position: absolute;
             left: 12px;
             top: 12px;
             display: flex;
-            gap: 8px
+            gap: 8px;
+            flex-wrap: wrap;
+            z-index: 100;
         }
         .pill {
             background: rgba(255,255,255,.04);
@@ -50,10 +60,12 @@
         .sidebar {
             padding: 20px;
             background: linear-gradient(180deg, rgba(255,255,255,.015), rgba(255,255,255,.01));
-            border-left: 1px solid rgba(255,255,255,.03)
+            border-left: 1px solid rgba(255,255,255,.03);
+            overflow-y: auto;
+            max-height: 100vh;
         }
         h1 { font-size: 20px; margin-bottom: 8px }
-        .controls { display: flex; gap: 8px; margin: 12px 0 }
+        .controls { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap }
         button {
             background: #ff6b6b;
             border: none;
@@ -62,7 +74,8 @@
             color: white;
             font-weight: 700;
             cursor: pointer;
-            transition: opacity .2s
+            transition: opacity .2s;
+            font-size: 13px;
         }
         button:hover { opacity: .9 }
         button:disabled { opacity: .5; cursor: not-allowed }
@@ -76,9 +89,25 @@
             position: absolute;
             cursor: pointer;
             transform-origin: center bottom;
-            transition: transform .1s
+            transition: transform .1s;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,.3))
         }
         .picture:hover { transform: scale(1.05) }
+        .picture.golden { filter: drop-shadow(0 0 12px gold) brightness(1.3) }
+        .picture.bomb { filter: drop-shadow(0 0 12px red) hue-rotate(180deg) }
+        .picture.trap { 
+            filter: drop-shadow(0 0 16px #ff6600) brightness(1.1);
+            animation: trapPulse 1s ease-in-out infinite;
+        }
+        @keyframes trapPulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(5deg); }
+        }
+        .picture.boss { 
+            filter: drop-shadow(0 0 20px #ff00ff) brightness(1.2);
+            border: 3px solid #ff00ff;
+            border-radius: 12px;
+        }
         .picture img { display: block; width: 100%; height: auto; border-radius: 8px }
         .pop {
             position: absolute;
@@ -89,9 +118,172 @@
             text-shadow: 0 2px 6px rgba(0,0,0,.6);
             transition: all .65s ease-out
         }
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            transition: all .8s ease-out
+        }
+        .miss-indicator {
+            position: absolute;
+            font-size: 24px;
+            font-weight: 900;
+            color: #ff6b6b;
+            text-shadow: 0 2px 8px rgba(0,0,0,.8);
+            pointer-events: none;
+            animation: missAnim .6s ease-out
+        }
+        @keyframes missAnim {
+            0% { transform: scale(0.5); opacity: 1 }
+            100% { transform: scale(1.5); opacity: 0 }
+        }
+        .combo-display {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 48px;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 4px 12px rgba(0,0,0,.8), 0 0 20px rgba(255,215,0,.6);
+            pointer-events: none;
+            transition: all .3s ease-out;
+            z-index: 50;
+        }
+        .combo-display.show { transform: translate(-50%, -50%) scale(1) }
+        .countdown {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 120px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 8px 24px rgba(0,0,0,.8);
+            pointer-events: none;
+            z-index: 200;
+        }
+        .shake { animation: shake .3s }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) }
+            25% { transform: translateX(-10px) }
+            75% { transform: translateX(10px) }
+        }
+        .powerup-indicator {
+            position: absolute;
+            left: 12px;
+            bottom: 12px;
+            background: rgba(255,215,0,.2);
+            border: 2px solid gold;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            color: gold;
+            backdrop-filter: blur(4px);
+            display: none;
+            z-index: 100;
+        }
+        .powerup-indicator.active { display: block }
+        
+        .level-select {
+            display: none;
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 300;
+            padding: 40px 20px;
+            overflow-y: auto;
+        }
+        .level-select.active { display: block }
+        .level-select h2 {
+            text-align: center;
+            font-size: 32px;
+            margin-bottom: 30px;
+            color: #fff;
+        }
+        .worlds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .world-card {
+            background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all .3s;
+            border: 2px solid rgba(255,255,255,.1);
+        }
+        .world-card:hover { transform: translateY(-5px); border-color: #ff6b6b }
+        .world-card.locked { opacity: 0.4; cursor: not-allowed }
+        .world-card.locked:hover { transform: none }
+        .world-card h3 { font-size: 20px; margin-bottom: 8px }
+        .world-card p { font-size: 13px; color: #9aa4b2; margin-bottom: 12px }
+        .levels-mini {
+            display: flex;
+            gap: 6px;
+            margin-top: 12px;
+        }
+        .level-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .level-dot.completed { background: #4caf50 }
+        .level-dot.current { background: #ff6b6b }
+        
+        .level-complete {
+            display: none;
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 250;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .level-complete.active { display: flex }
+        .level-complete h2 { font-size: 48px; color: #4caf50 }
+        .level-complete .stars {
+            font-size: 64px;
+            letter-spacing: 10px;
+        }
+        .level-complete .stats {
+            font-size: 18px;
+            text-align: center;
+            line-height: 1.8;
+        }
+        .level-complete button {
+            font-size: 16px;
+            padding: 12px 24px;
+        }
+        
+        .objective {
+            background: rgba(255,215,0,.1);
+            border: 2px solid gold;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: gold;
+            margin: 12px 0;
+            text-align: center;
+        }
+        
         @media (max-width:880px) {
             .game-wrap { grid-template-columns: 1fr }
-            .sidebar { order: 2 }
+            .sidebar { order: 2; max-height: none }
         }
     </style>
 </head>
@@ -102,21 +294,50 @@
                 <div class="pill score">Score: <span id="score">0</span></div>
                 <div class="pill">Time: <span id="time">60</span>s</div>
                 <div class="pill">Lives: <span id="lives">3</span></div>
+                <div class="pill">Streak: <span id="streak">0</span></div>
+            </div>
+            <div class="powerup-indicator" id="powerup"></div>
+            <div class="combo-display" id="combo"></div>
+            
+            <div class="level-select active" id="levelSelect">
+                <h2>🎮 Select Your Level</h2>
+                <div class="worlds-grid" id="worldsGrid"></div>
+            </div>
+            
+            <div class="level-complete" id="levelComplete">
+                <h2>LEVEL COMPLETE!</h2>
+                <div class="stars" id="starsDisplay">★★★</div>
+                <div class="stats" id="completeStats"></div>
+                <div style="display:flex;gap:12px">
+                    <button id="nextLevel">Next Level</button>
+                    <button class="secondary" id="backToMenu">Level Select</button>
+                </div>
             </div>
         </div>
         <aside class="sidebar">
-            <h1>Picture Pop</h1>
-            <p class="meta">Click the pictures before they float away!</p>
+            <h1>Picture Pop - Levels</h1>
+            <p class="meta" id="levelName">Select a level to begin</p>
+            <div class="objective" id="objective" style="display:none"></div>
             <div class="controls">
-                <button id="start">Start Game</button>
-                <button class="secondary" id="reset">Reset Score</button>
+                <button id="start" disabled>Start Level</button>
+                <button class="secondary" id="pause" disabled>Pause</button>
+                <button class="secondary" id="menuBtn">Menu</button>
             </div>
-            <div class="pill" style="width:fit-content;margin-top:12px">High: <strong id="high">0</strong></div>
+            <div class="pill" style="width:fit-content;margin-top:12px">Progress: <strong id="progress">0/15</strong></div>
             <div class="meta" style="margin-top:18px">
                 <strong>How to Play</strong><br>
                 • Click pictures to pop them<br>
-                • Don't let them escape (3 lives)<br>
-                • Survive for 60 seconds
+                • Golden = bonus points!<br>
+                • Red bombs = avoid clicking!<br>
+                • Orange traps = freeze you!<br>
+                • Complete objectives to win<br>
+                • Earn stars based on performance<br>
+                • Game speeds up as you progress!
+            </div>
+            <div class="meta" style="margin-top:18px">
+                <strong>Controls</strong><br>
+                • SPACE - Start level<br>
+                • P - Pause/Resume
             </div>
             <div class="meta" style="margin-top:18px">Made with ❤️ — sentient fam</div>
         </aside>
@@ -125,129 +346,803 @@
     <script>
         const $ = id => document.getElementById(id);
         const area = $('area'), scoreEl = $('score'), timeEl = $('time'), livesEl = $('lives');
-        const startBtn = $('start'), resetBtn = $('reset'), highEl = $('high');
+        const startBtn = $('start'), pauseBtn = $('pause'), menuBtn = $('menuBtn');
+        const streakEl = $('streak'), comboEl = $('combo'), powerupEl = $('powerup');
+        const levelSelect = $('levelSelect'), levelComplete = $('levelComplete');
+        const nextLevelBtn = $('nextLevel'), backToMenuBtn = $('backToMenu');
+        const objectiveEl = $('objective'), levelNameEl = $('levelName'), progressEl = $('progress');
+        const worldsGrid = $('worldsGrid'), starsDisplay = $('starsDisplay'), completeStats = $('completeStats');
 
         const images = [
-    './dobby.png',
-    './dobby1.png',
-    './dobby2.jpeg',
-    './dobby3.jpeg',
-    './dobby4.jpeg',
-    './dobby5.jpeg',
-    './dobby6.jpeg'
-];
+            'dobby.png',
+            'dobby1.png',
+            'dobby2.jpeg',
+            'dobby3.jpeg',
+            'dobby4.jpeg',
+            'dobby5.jpeg',
+            'dobby6.jpeg'
+        ];
+        
+        const trapImage = 'Trap1.PNG';
 
-        let game = { score: 0, time: 60, lives: 3, running: false, intervals: [] };
-        let high = parseInt(localStorage.getItem('high') || '0');
-        highEl.textContent = high;
+        const WORLDS = [
+            {
+                name: 'Ocean Depths',
+                theme: 'ocean',
+                icon: '🌊',
+                description: 'Float through underwater adventures',
+                levels: [
+                    { name: 'Shallow Waters', objective: 'score', target: 300, time: 60, lives: 3 },
+                    { name: 'Coral Reef', objective: 'accuracy', target: 80, time: 60, lives: 3 },
+                    { name: 'Deep Dive', objective: 'combo', target: 5, time: 60, lives: 3 }
+                ]
+            },
+            {
+                name: 'Space Station',
+                theme: 'space',
+                icon: '🚀',
+                description: 'Zero gravity popping action',
+                levels: [
+                    { name: 'Orbit One', objective: 'score', target: 500, time: 60, lives: 3 },
+                    { name: 'Asteroid Field', objective: 'nobombs', target: 1, time: 60, lives: 3 },
+                    { name: 'Nebula Boss', objective: 'boss', target: 1, time: 90, lives: 5 }
+                ]
+            },
+            {
+                name: 'Magic Garden',
+                theme: 'garden',
+                icon: '🌺',
+                description: 'Pop through blooming flowers',
+                levels: [
+                    { name: 'Spring Meadow', objective: 'streak', target: 15, time: 60, lives: 3 },
+                    { name: 'Summer Breeze', objective: 'speed', target: 30, time: 45, lives: 3 },
+                    { name: 'Garden Guardian', objective: 'boss', target: 1, time: 90, lives: 5 }
+                ]
+            },
+            {
+                name: 'Candy Land',
+                theme: 'candy',
+                icon: '🍭',
+                description: 'Sweet sugary challenges',
+                levels: [
+                    { name: 'Lollipop Lane', objective: 'score', target: 700, time: 60, lives: 3 },
+                    { name: 'Gumdrop Grove', objective: 'perfect', target: 1, time: 60, lives: 1 },
+                    { name: 'Candy King', objective: 'boss', target: 1, time: 90, lives: 5 }
+                ]
+            },
+            {
+                name: 'Neon City',
+                theme: 'neon',
+                icon: '🌃',
+                description: 'Cyberpunk endgame challenge',
+                levels: [
+                    { name: 'Downtown', objective: 'score', target: 1000, time: 60, lives: 3 },
+                    { name: 'Skyscraper', objective: 'combo', target: 10, time: 60, lives: 3 },
+                    { name: 'Final Boss', objective: 'boss', target: 1, time: 120, lives: 7 }
+                ]
+            }
+        ];
+
+        let progress = { completed: 0, stars: {}, currentWorld: -1, currentLevel: -1 };
+        
+        let game = { 
+            score: 0, time: 60, lives: 3, running: false, paused: false, intervals: [], 
+            streak: 0, lastPopTime: 0, combo: 1, activePowerup: null, powerupEnd: 0,
+            wind: 0, pictureCount: 0, bombsClicked: 0, levelData: null,
+            stats: { hits: 0, misses: 0, maxCombo: 1, maxStreak: 0 },
+            difficultyMultiplier: 1
+        };
+
+        try {
+            const saved = localStorage.getItem('picturePopProgress');
+            if (saved) progress = JSON.parse(saved);
+        } catch(e) {}
+
+        // Audio system
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                const now = audioCtx.currentTime;
+                
+                switch(type) {
+                    case 'pop':
+                        osc.frequency.setValueAtTime(800, now);
+                        osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+                        gain.gain.setValueAtTime(0.3, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                        osc.start(now);
+                        osc.stop(now + 0.1);
+                        break;
+                    case 'golden':
+                        osc.frequency.setValueAtTime(1200, now);
+                        osc.frequency.exponentialRampToValueAtTime(1600, now + 0.15);
+                        gain.gain.setValueAtTime(0.4, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                        osc.start(now);
+                        osc.stop(now + 0.15);
+                        break;
+                    case 'bomb':
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(100, now);
+                        osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+                        gain.gain.setValueAtTime(0.5, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                        osc.start(now);
+                        osc.stop(now + 0.3);
+                        break;
+                    case 'lose':
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(200, now);
+                        osc.frequency.exponentialRampToValueAtTime(50, now + 0.5);
+                        gain.gain.setValueAtTime(0.4, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                        osc.start(now);
+                        osc.stop(now + 0.5);
+                        break;
+                    case 'combo':
+                        osc.frequency.setValueAtTime(600, now);
+                        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.2);
+                        gain.gain.setValueAtTime(0.3, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                        osc.start(now);
+                        osc.stop(now + 0.2);
+                        break;
+                    case 'victory':
+                        [400, 500, 600, 800].forEach((freq, i) => {
+                            const o = audioCtx.createOscillator();
+                            const g = audioCtx.createGain();
+                            o.connect(g);
+                            g.connect(audioCtx.destination);
+                            o.frequency.setValueAtTime(freq, now + i * 0.15);
+                            g.gain.setValueAtTime(0.3, now + i * 0.15);
+                            g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.3);
+                            o.start(now + i * 0.15);
+                            o.stop(now + i * 0.15 + 0.3);
+                        });
+                        break;
+                }
+            } catch(e) {}
+        }
 
         const rand = (min, max) => Math.random() * (max - min) + min;
 
+        function createParticles(x, y, color = '#ff6b6b') {
+            for (let i = 0; i < 12; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.background = color;
+                area.appendChild(particle);
+                
+                const angle = (Math.PI * 2 * i) / 12;
+                const distance = rand(40, 80);
+                const dx = Math.cos(angle) * distance;
+                const dy = Math.sin(angle) * distance;
+                
+                setTimeout(() => {
+                    particle.style.transform = `translate(${dx}px, ${dy}px) scale(0)`;
+                    particle.style.opacity = '0';
+                }, 10);
+                
+                setTimeout(() => particle.remove(), 850);
+            }
+        }
+
+        function showCombo(multiplier) {
+            if (multiplier <= 1) return;
+            comboEl.textContent = `${multiplier}x COMBO!`;
+            comboEl.classList.add('show');
+            playSound('combo');
+            setTimeout(() => comboEl.classList.remove('show'), 500);
+        }
+
+        function updateStreak() {
+            streakEl.textContent = game.streak;
+            game.stats.maxStreak = Math.max(game.stats.maxStreak, game.streak);
+            const now = Date.now();
+            if (now - game.lastPopTime < 1500) {
+                game.combo = Math.min(game.combo + 0.5, 5);
+                game.stats.maxCombo = Math.max(game.stats.maxCombo, game.combo);
+                if (game.combo >= 2) showCombo(Math.floor(game.combo));
+            } else {
+                game.combo = 1;
+            }
+            game.lastPopTime = now;
+        }
+
+        function activatePowerup(type) {
+            game.activePowerup = type;
+            game.powerupEnd = Date.now() + 5000;
+            
+            const messages = {
+                freeze: '⏸️ TIME FROZEN!',
+                multipop: '💥 MULTI-POP ACTIVE!',
+                shield: '🛡️ SHIELD ACTIVE!'
+            };
+            
+            powerupEl.textContent = messages[type];
+            powerupEl.classList.add('active');
+            
+            const checkPowerup = setInterval(() => {
+                if (Date.now() >= game.powerupEnd) {
+                    game.activePowerup = null;
+                    powerupEl.classList.remove('active');
+                    clearInterval(checkPowerup);
+                }
+            }, 100);
+        }
+
+        function showMiss(x, y) {
+            const miss = document.createElement('div');
+            miss.className = 'miss-indicator';
+            miss.textContent = 'MISS!';
+            miss.style.left = (x - 40) + 'px';
+            miss.style.top = (y - 20) + 'px';
+            area.appendChild(miss);
+            setTimeout(() => miss.remove(), 600);
+        }
+
         function spawn() {
+            if (game.paused || !game.running) return;
+            if (game.pictureCount > 15) return;
+            
             const pic = document.createElement('div');
             pic.className = 'picture';
-            const size = rand(50, 100);
+            
+            const isBoss = game.levelData && game.levelData.objective === 'boss' && game.pictureCount === 0 && game.time === game.levelData.time;
+            const size = isBoss ? rand(150, 200) : rand(50, 100);
             pic.style.width = size + 'px';
-            pic.innerHTML = `<img src="${images[~~(Math.random() * images.length)]}">`;
+            
+            const rnd = Math.random();
+            let type = 'normal';
+            
+           
+            const trapChance = 0.08 + (game.difficultyMultiplier - 1) * 0.03;
+            const bombChance = 0.1 + (game.difficultyMultiplier - 1) * 0.02;
+            
+            if (isBoss) {
+                type = 'boss';
+                pic.classList.add('boss');
+            } else if (rnd < trapChance) {
+                type = 'trap';
+                pic.classList.add('trap');
+            } else if (rnd < trapChance + bombChance) {
+                type = 'bomb';
+                pic.classList.add('bomb');
+            } else if (rnd < trapChance + bombChance + 0.15) {
+                type = 'golden';
+                pic.classList.add('golden');
+            }
+            
+            
+            if (type === 'trap') {
+                pic.innerHTML = `<img src="${trapImage}">`;
+            } else {
+                pic.innerHTML = `<img src="${images[~~(Math.random() * images.length)]}">`;
+            }
+            
             pic.style.left = rand(20, area.clientWidth - size - 20) + 'px';
             pic.style.bottom = '-140px';
             area.appendChild(pic);
+            
+            game.pictureCount++;
 
-            const speed = rand(2.2, 4.8), endY = area.clientHeight + 200;
+            // Speed increases with difficulty multiplier
+            const baseSpeed = isBoss ? 8 : rand(2.2, 4.8);
+            const speed = baseSpeed / game.difficultyMultiplier;
+            const endY = area.clientHeight + 200;
             const start = performance.now();
             let popped = false;
+            const rotation = rand(-180, 180);
+            const rotationSpeed = rand(-2, 2) * game.difficultyMultiplier;
+            let health = isBoss ? 10 : 1;
 
             function animate(now) {
-                if (popped) return;
+                if (popped || !game.running) return;
+                if (game.paused) {
+                    requestAnimationFrame(animate);
+                    return;
+                }
+                
                 const t = (now - start) / (speed * 1000);
                 if (t >= 1) {
                     pic.remove();
-                    if (game.running) lose();
+                    game.pictureCount--;
+                    if (game.running && type !== 'bomb') {
+                        lose();
+                        const rect = pic.getBoundingClientRect(), areaRect = area.getBoundingClientRect();
+                        showMiss(rect.left - areaRect.left + rect.width / 2, rect.top - areaRect.top);
+                    }
                     return;
                 }
-                pic.style.bottom = (t * endY - 140) + 'px';
+                
+                const windOffset = game.wind * t * 100;
+                const currentY = t * endY - 140;
+                const currentX = parseFloat(pic.style.left) + windOffset;
+                
+                pic.style.bottom = currentY + 'px';
+                pic.style.left = Math.max(0, Math.min(area.clientWidth - size, currentX)) + 'px';
+                pic.style.transform = `rotate(${rotation + rotationSpeed * t * 360}deg)`;
+                
                 requestAnimationFrame(animate);
             }
             requestAnimationFrame(animate);
 
             const pop = () => {
-                if (!game.running || popped) return;
-                popped = true;
-                const pts = ~~(size / 10);
+                if (!game.running || popped || game.paused) return;
+                
                 const rect = pic.getBoundingClientRect(), areaRect = area.getBoundingClientRect();
-                const fx = document.createElement('div');
-                fx.className = 'pop';
-                fx.textContent = '+' + pts;
-                fx.style.left = (rect.left - areaRect.left + rect.width / 2 - 24) + 'px';
-                fx.style.top = (rect.top - areaRect.top + 8) + 'px';
-                area.appendChild(fx);
-                setTimeout(() => { fx.style.transform = 'translateY(-30px)'; fx.style.opacity = '0' }, 10);
-                setTimeout(() => fx.remove(), 700);
+                const x = rect.left - areaRect.left + rect.width / 2;
+                const y = rect.top - areaRect.top + rect.height / 2;
+                
+                if (type === 'trap') {
+                    popped = true;
+                    game.pictureCount--;
+                    playSound('bomb');
+                    createParticles(x, y, '#ff6600');
+                    
+                    game.paused = true;
+                    pauseBtn.textContent = 'TRAPPED!';
+                    pauseBtn.style.background = '#ff6600';
+                    area.classList.add('shake');
+                    
+                    setTimeout(() => {
+                        if (game.running) {
+                            game.paused = false;
+                            pauseBtn.textContent = 'Pause';
+                            pauseBtn.style.background = '';
+                        }
+                        area.classList.remove('shake');
+                    }, 2000);
+                    
+                    pic.remove();
+                } else if (type === 'bomb') {
+                    popped = true;
+                    game.pictureCount--;
+                    game.bombsClicked++;
+                    playSound('bomb');
+                    createParticles(x, y, '#ff0000');
+                    game.score = Math.max(0, game.score - 20);
+                    game.lives--;
+                    livesEl.textContent = game.lives;
+                    area.classList.add('shake');
+                    setTimeout(() => area.classList.remove('shake'), 300);
+                    pic.remove();
+                    if (game.lives <= 0) end(false);
+                } else if (type === 'boss') {
+                    health--;
+                    playSound(health > 0 ? 'pop' : 'golden');
+                    createParticles(x, y, '#ff00ff');
+                    
+                    const fx = document.createElement('div');
+                    fx.className = 'pop';
+                    fx.textContent = health > 0 ? `${health} HP` : '+500!';
+                    fx.style.left = (x - 24) + 'px';
+                    fx.style.top = (y - 20) + 'px';
+                    fx.style.color = '#ff00ff';
+                    area.appendChild(fx);
+                    setTimeout(() => { fx.style.transform = 'translateY(-30px)'; fx.style.opacity = '0' }, 10);
+                    setTimeout(() => fx.remove(), 700);
+                    
+                    if (health <= 0) {
+                        popped = true;
+                        game.pictureCount--;
+                        pic.remove();
+                        game.score += 500;
+                        scoreEl.textContent = game.score;
+                        end(true);
+                    }
+                } else {
+                    popped = true;
+                    game.pictureCount--;
+                    
+                    let pts = ~~(size / 10);
+                    let color = '#ff6b6b';
+                    
+                    if (type === 'golden') {
+                        pts *= 3;
+                        color = '#ffd700';
+                        playSound('golden');
+                        
+                        if (Math.random() < 0.3) {
+                            const powerups = ['freeze', 'multipop', 'shield'];
+                            activatePowerup(powerups[~~(Math.random() * powerups.length)]);
+                        }
+                    } else {
+                        playSound('pop');
+                    }
+                    
+                    pts = Math.floor(pts * game.combo);
+                    
+                    createParticles(x, y, color);
+                    
+                    const fx = document.createElement('div');
+                    fx.className = 'pop';
+                    fx.textContent = '+' + pts;
+                    if (game.combo > 1) fx.textContent += ` (${Math.floor(game.combo)}x)`;
+                    fx.style.left = (x - 24) + 'px';
+                    fx.style.top = (y - 20) + 'px';
+                    fx.style.color = color;
+                    area.appendChild(fx);
+                    setTimeout(() => { fx.style.transform = 'translateY(-30px)'; fx.style.opacity = '0' }, 10);
+                    setTimeout(() => fx.remove(), 700);
+                    
+                    game.score += pts;
+                    game.streak++;
+                    game.stats.hits++;
+                    scoreEl.textContent = game.score;
+                    updateStreak();
+                    
+                   
+                    game.difficultyMultiplier = 1 + (game.score / 500) * 0.5;
+                    adjustSpawnRate();
+                    
+                    if (game.activePowerup === 'multipop') {
+                        document.querySelectorAll('.picture').forEach(p => {
+                            if (p !== pic && !p.classList.contains('bomb')) {
+                                const pRect = p.getBoundingClientRect();
+                                const dist = Math.hypot(pRect.left - rect.left, pRect.top - rect.top);
+                                if (dist < 150) {
+                                    p.click();
+                                }
+                            }
+                        });
+                    }
+                }
+                
                 pic.remove();
-                game.score += pts;
-                scoreEl.textContent = game.score;
-                adjustDifficulty();
             };
 
             pic.onclick = pop;
-            pic.ontouchstart = e => { e.preventDefault(); pop() };
+            pic.ontouchstart = e => { e.preventDefault(); pop(); };
         }
 
         function lose() {
+            if (game.activePowerup === 'shield') {
+                game.activePowerup = null;
+                powerupEl.classList.remove('active');
+                return;
+            }
+            
             game.lives--;
+            game.streak = 0;
+            game.combo = 1;
+            game.stats.misses++;
+            streakEl.textContent = 0;
             livesEl.textContent = game.lives;
-            if (game.lives <= 0) end();
+            playSound('lose');
+            area.classList.add('shake');
+            setTimeout(() => area.classList.remove('shake'), 300);
+            if (game.lives <= 0) end(false);
         }
 
         function tick() {
+            if (game.paused || game.activePowerup === 'freeze') return;
             game.time--;
             timeEl.textContent = game.time;
-            if (game.time <= 0) end();
+            
+            game.wind = Math.sin(game.time / 10) * 0.5;
+            
+            if (game.time <= 0) {
+                checkObjective();
+            }
+        }
+        
+        function adjustSpawnRate() {
+            // Speed up spawning as difficulty increases
+            const baseDelay = 1200;
+            const minDelay = 400;
+            const newDelay = Math.max(minDelay, baseDelay / game.difficultyMultiplier);
+            
+            if (game.intervals[1]) {
+                clearInterval(game.intervals[1]);
+                game.intervals[1] = setInterval(spawn, newDelay);
+            }
         }
 
-        function adjustDifficulty() {
-            const scoreThreshold = Math.floor(game.score / 50);
-            const delay = Math.max(400, 1400 - (scoreThreshold * 100));
-            clearInterval(game.intervals[1]);
-            game.intervals[1] = setInterval(spawn, delay);
+        function checkObjective() {
+            if (!game.levelData) return end(false);
+            
+            const obj = game.levelData.objective;
+            let success = false;
+            
+            switch(obj) {
+                case 'score':
+                    success = game.score >= game.levelData.target;
+                    break;
+                case 'accuracy':
+                    const acc = game.stats.hits + game.stats.misses > 0 
+                        ? (game.stats.hits / (game.stats.hits + game.stats.misses)) * 100 
+                        : 0;
+                    success = acc >= game.levelData.target;
+                    break;
+                case 'combo':
+                    success = Math.floor(game.stats.maxCombo) >= game.levelData.target;
+                    break;
+                case 'streak':
+                    success = game.stats.maxStreak >= game.levelData.target;
+                    break;
+                case 'nobombs':
+                    success = game.bombsClicked === 0;
+                    break;
+                case 'speed':
+                    success = game.stats.hits >= game.levelData.target;
+                    break;
+                case 'perfect':
+                    success = game.stats.misses === 0;
+                    break;
+                case 'boss':
+                    success = false; 
+                    break;
+            }
+            
+            end(success);
+        }
+
+        function countdown(num, callback) {
+            if (num === 0) {
+                callback();
+                return;
+            }
+            const cd = document.createElement('div');
+            cd.className = 'countdown';
+            cd.textContent = num;
+            area.appendChild(cd);
+            playSound('pop');
+            setTimeout(() => cd.remove(), 800);
+            setTimeout(() => countdown(num - 1, callback), 1000);
         }
 
         function start() {
-            if (game.running) return;
-            game = { score: 0, time: 60, lives: 3, running: true, intervals: [] };
-            scoreEl.textContent = 0;
-            timeEl.textContent = 60;
-            livesEl.textContent = 3;
-            area.querySelectorAll('.picture').forEach(p => p.remove());
-            game.intervals = [setInterval(tick, 1000), setInterval(spawn, 1200)];
-            startBtn.textContent = 'Running...';
-            startBtn.disabled = true;
+            if (game.running || !game.levelData) return;
+            
+            countdown(3, () => {
+                game = { 
+                    score: 0, 
+                    time: game.levelData.time, 
+                    lives: game.levelData.lives, 
+                    running: true, 
+                    paused: false, 
+                    intervals: [], 
+                    streak: 0, 
+                    lastPopTime: 0, 
+                    combo: 1, 
+                    activePowerup: null, 
+                    powerupEnd: 0,
+                    wind: 0, 
+                    pictureCount: 0,
+                    bombsClicked: 0,
+                    levelData: game.levelData,
+                    stats: { hits: 0, misses: 0, maxCombo: 1, maxStreak: 0 },
+                    difficultyMultiplier: 1
+                };
+                
+                scoreEl.textContent = 0;
+                timeEl.textContent = game.levelData.time;
+                livesEl.textContent = game.levelData.lives;
+                streakEl.textContent = 0;
+                area.querySelectorAll('.picture, .particle, .pop, .miss-indicator').forEach(el => el.remove());
+                game.intervals = [setInterval(tick, 1000), setInterval(spawn, 1200)];
+                startBtn.textContent = 'Running...';
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+            });
         }
 
-        function end() {
+        function togglePause() {
+            if (!game.running) return;
+            game.paused = !game.paused;
+            pauseBtn.textContent = game.paused ? 'Resume' : 'Pause';
+        }
+
+        function end(success) {
             game.running = false;
             game.intervals.forEach(clearInterval);
-            startBtn.textContent = 'Start Game';
+            startBtn.textContent = 'Start Level';
             startBtn.disabled = false;
+            pauseBtn.disabled = true;
             
-            if (game.score > high) {
-                high = game.score;
-                localStorage.setItem('high', high);
-                highEl.textContent = high;
-                alert(`🎉 New Highscore!\nScore: ${game.score}`);
+            if (success) {
+                playSound('victory');
+                
+               
+                const accuracy = game.stats.hits + game.stats.misses > 0 
+                    ? (game.stats.hits / (game.stats.hits + game.stats.misses)) * 100 
+                    : 0;
+                
+                let stars = 1;
+                if (accuracy >= 90 && game.lives >= game.levelData.lives - 1) stars = 3;
+                else if (accuracy >= 75) stars = 2;
+                
+                // Save progress
+                const levelKey = `${progress.currentWorld}-${progress.currentLevel}`;
+                if (!progress.stars[levelKey] || progress.stars[levelKey] < stars) {
+                    progress.stars[levelKey] = stars;
+                }
+                
+                
+                const totalStars = Object.values(progress.stars).length;
+                progress.completed = totalStars;
+                
+                
+                try {
+                    localStorage.setItem('picturePopProgress', JSON.stringify(progress));
+                } catch(e) {}
+                
+                
+                starsDisplay.textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+                completeStats.innerHTML = `
+                    Score: ${game.score}<br>
+                    Accuracy: ${Math.round(accuracy)}%<br>
+                    Max Combo: ${Math.floor(game.stats.maxCombo)}x<br>
+                    Max Streak: ${game.stats.maxStreak}
+                `;
+                levelComplete.classList.add('active');
+                
             } else {
-                alert(`Game Over\nScore: ${game.score}`);
+                alert(`Level Failed!\n\nScore: ${game.score}\nTry again!`);
             }
         }
 
+        function getObjectiveText(level) {
+            const obj = level.objective;
+            switch(obj) {
+                case 'score': return `Score ${level.target}+ points`;
+                case 'accuracy': return `Achieve ${level.target}% accuracy`;
+                case 'combo': return `Get a ${level.target}x combo`;
+                case 'streak': return `Reach ${level.target} streak`;
+                case 'nobombs': return `Don't click any bombs`;
+                case 'speed': return `Pop ${level.target} pictures`;
+                case 'perfect': return `Don't miss any pictures`;
+                case 'boss': return `Defeat the boss!`;
+                default: return 'Complete the level';
+            }
+        }
+
+        function selectLevel(worldIdx, levelIdx) {
+            progress.currentWorld = worldIdx;
+            progress.currentLevel = levelIdx;
+            
+            const world = WORLDS[worldIdx];
+            const level = world.levels[levelIdx];
+            
+            game.levelData = level;
+            
+            
+            area.className = `play-area ${world.theme}`;
+            levelNameEl.textContent = `${world.name} - ${level.name}`;
+            objectiveEl.textContent = `🎯 ${getObjectiveText(level)}`;
+            objectiveEl.style.display = 'block';
+            
+            
+            levelSelect.classList.remove('active');
+            
+            
+            startBtn.disabled = false;
+            
+            updateProgress();
+        }
+
+        function renderLevelSelect() {
+            worldsGrid.innerHTML = '';
+            
+            WORLDS.forEach((world, wIdx) => {
+                const card = document.createElement('div');
+                card.className = 'world-card';
+                
+               
+                const isUnlocked = wIdx === 0 || (wIdx > 0 && progress.stars[`${wIdx-1}-2`]);
+                
+                if (!isUnlocked) {
+                    card.classList.add('locked');
+                }
+                
+                card.innerHTML = `
+                    <h3>${world.icon} ${world.name}</h3>
+                    <p>${world.description}</p>
+                    <div class="levels-mini">
+                        ${world.levels.map((level, lIdx) => {
+                            const levelKey = `${wIdx}-${lIdx}`;
+                            const stars = progress.stars[levelKey] || 0;
+                            const isCurrentLevel = wIdx === progress.currentWorld && lIdx === progress.currentLevel;
+                            let className = 'level-dot';
+                            if (stars > 0) className += ' completed';
+                            if (isCurrentLevel) className += ' current';
+                            return `<div class="${className}">${lIdx + 1}</div>`;
+                        }).join('')}
+                    </div>
+                `;
+                
+                if (isUnlocked) {
+                    card.onclick = () => {
+                       
+                        const levelIdx = 0;
+                        selectLevel(wIdx, levelIdx);
+                    };
+                }
+                
+                worldsGrid.appendChild(card);
+            });
+        }
+
+        function updateProgress() {
+            const total = WORLDS.reduce((acc, w) => acc + w.levels.length, 0);
+            progressEl.textContent = `${progress.completed}/${total}`;
+        }
+
+        function showMenu() {
+            if (game.running) {
+                if (confirm('Quit current level?')) {
+                    game.running = false;
+                    game.intervals.forEach(clearInterval);
+                    startBtn.disabled = true;
+                    pauseBtn.disabled = true;
+                    levelSelect.classList.add('active');
+                    levelComplete.classList.remove('active');
+                    objectiveEl.style.display = 'none';
+                    levelNameEl.textContent = 'Select a level to begin';
+                    area.className = 'play-area';
+                    area.querySelectorAll('.picture, .particle, .pop, .miss-indicator').forEach(el => el.remove());
+                    renderLevelSelect();
+                }
+            } else {
+                levelSelect.classList.add('active');
+                levelComplete.classList.remove('active');
+                renderLevelSelect();
+            }
+        }
+
+       
         startBtn.onclick = start;
-        resetBtn.onclick = () => {
-            if (confirm('Reset highscore?')) {
-                localStorage.removeItem('high');
-                high = 0;
-                highEl.textContent = 0;
+        pauseBtn.onclick = togglePause;
+        menuBtn.onclick = showMenu;
+        
+        nextLevelBtn.onclick = () => {
+            levelComplete.classList.remove('active');
+            
+            
+            let nextWorld = progress.currentWorld;
+            let nextLevel = progress.currentLevel + 1;
+            
+            if (nextLevel >= WORLDS[nextWorld].levels.length) {
+                nextLevel = 0;
+                nextWorld++;
+            }
+            
+            if (nextWorld < WORLDS.length) {
+                selectLevel(nextWorld, nextLevel);
+            } else {
+                showMenu();
             }
         };
+        
+        backToMenuBtn.onclick = () => {
+            levelComplete.classList.remove('active');
+            showMenu();
+        };
+
+        // Keyboard controls
+        document.addEventListener('keydown', e => {
+            if (e.code === 'Space' && !game.running && game.levelData && !startBtn.disabled) {
+                e.preventDefault();
+                start();
+            }
+            if (e.code === 'KeyP' && game.running) {
+                e.preventDefault();
+                togglePause();
+            }
+        });
+
+        
+        renderLevelSelect();
+        updateProgress();
     </script>
 </body>
 </html>
